@@ -150,14 +150,28 @@ void publish_camera_pose(Sophus::SE3f Tcw_SE3f, ros::Time msg_time)
     pose_msg.header.frame_id = world_frame_id;
     pose_msg.header.stamp = msg_time;
 
-    pose_msg.pose.position.x = Tcw_SE3f.translation().x();
-    pose_msg.pose.position.y = Tcw_SE3f.translation().y();
-    pose_msg.pose.position.z = Tcw_SE3f.translation().z();
+    // 카메라 → 바디(ENU) 변환 행렬
+    Eigen::Matrix3f R_cam2body;
+    R_cam2body << 0, 0, 1,
+                 -1, 0, 0,
+                  0, -1, 0;
 
-    pose_msg.pose.orientation.w = Tcw_SE3f.unit_quaternion().coeffs().w();
-    pose_msg.pose.orientation.x = Tcw_SE3f.unit_quaternion().coeffs().x();
-    pose_msg.pose.orientation.y = Tcw_SE3f.unit_quaternion().coeffs().y();
-    pose_msg.pose.orientation.z = Tcw_SE3f.unit_quaternion().coeffs().z();
+    // 위치 변환
+    Eigen::Vector3f cam_pos = Tcw_SE3f.translation();
+    Eigen::Vector3f body_pos = R_cam2body * cam_pos;
+    pose_msg.pose.position.x = body_pos.x();
+    pose_msg.pose.position.y = body_pos.y();
+    pose_msg.pose.position.z = body_pos.z();
+
+    // 쿼터니언 변환
+    Eigen::Quaternionf cam_q = Tcw_SE3f.unit_quaternion();
+    Eigen::Matrix3f cam_R = cam_q.toRotationMatrix();
+    Eigen::Matrix3f body_R = R_cam2body * cam_R;
+    Eigen::Quaternionf body_q(body_R);
+    pose_msg.pose.orientation.w = body_q.w();
+    pose_msg.pose.orientation.x = body_q.x();
+    pose_msg.pose.orientation.y = body_q.y();
+    pose_msg.pose.orientation.z = body_q.z();
 
     pose_pub.publish(pose_msg);
 }
