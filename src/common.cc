@@ -150,20 +150,20 @@ void publish_camera_pose(Sophus::SE3f Tcw_SE3f, ros::Time msg_time)
     pose_msg.header.frame_id = world_frame_id;
     pose_msg.header.stamp = msg_time;
 
-    // 카메라 → 바디(ENU) 변환 행렬
+    // camera → body(ENU) transformation matrix
     Eigen::Matrix3f R_cam2body;
     R_cam2body << 0, 0, 1,
                  -1, 0, 0,
                   0, -1, 0;
 
-    // 위치 변환
+    // position transformation
     Eigen::Vector3f cam_pos = Tcw_SE3f.translation();
     Eigen::Vector3f body_pos = R_cam2body * cam_pos;
     pose_msg.pose.position.x = body_pos.x();
     pose_msg.pose.position.y = body_pos.y();
     pose_msg.pose.position.z = body_pos.z();
 
-    // 쿼터니언 변환
+    // quaternion transformation
     Eigen::Quaternionf cam_q = Tcw_SE3f.unit_quaternion();
     Eigen::Matrix3f cam_R = cam_q.toRotationMatrix();
     Eigen::Matrix3f body_R = R_cam2body * cam_R;
